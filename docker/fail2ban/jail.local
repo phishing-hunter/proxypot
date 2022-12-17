@@ -1,0 +1,12 @@
+[DEFAULT]
+ignoreip = 127.0.0.0/8 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 __MGMT_IP__
+
+[httpd]
+enabled  = true
+action    = iptables-ipset-proto4[name=honeypotHttpd, port="0:65535", blocktype=DROP, protocol=tcp, chain=DOCKER-USER]
+filter   = httpd
+logpath  = /logs/httpd-*.json
+maxretry = 100
+findtime = 600
+bantime  = 3600
+backend = auto

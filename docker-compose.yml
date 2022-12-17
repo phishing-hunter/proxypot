@@ -1,0 +1,180 @@
+version: "3.4"
+
+services:
+  httpd:
+    build: ./docker/httpd
+    ports:
+      - "80:80"
+      - "8080:80"
+      - "8181:80"
+      - "8000:80"
+      - "8001:80"
+      - "1080:80"
+    environment:
+      - DOMAIN_NAME=${DOMAIN_NAME}
+      - HONEYPOT_IP=${HONEYPOT_IP}
+    volumes:
+      - /data:/logs
+    depends_on:
+      - socat
+      - hellpot
+      - inetsim
+      - dionaea
+      - smtpd
+      - cowrie
+      - dicompot
+      - ipphoney
+      - medpot
+      - fail2ban
+    tmpfs:
+     - /tmp
+    read_only: true
+    restart: always
+
+  socat:
+    build: ./docker/socat
+    ports:
+      - "443:443"
+      - '465:465'
+    environment:
+      - DOMAIN_NAME=${DOMAIN_NAME}
+    volumes:
+      - /etc/letsencrypt:/etc/letsencrypt
+    tmpfs:
+     - /tmp
+     - /var/run
+     - /var/log/supervisor
+    read_only: true
+    restart: always
+
+  smtpd:
+    image: rnwood/smtp4dev:v3
+    ports:
+      - '127.0.0.1:5000:80'
+      - '127.0.0.1:25:25'
+      - '127.0.0.1:587:25'
+    restart: always
+    volumes:
+      - smtp4dev-data:/smtp4dev
+      - /etc/letsencrypt:/etc/letsencrypt
+    tmpfs:
+     - /tmp
+    read_only: true
+    environment:
+      - ServerOptions__HostName=smtp.gmail.com
+      - ServerOptions__NumberOfMessagesToKeep=10000
+      - ServerOptions__NumberOfSessionsToKeep=100
+      - ServerOptions__TlsMode=StartTls
+
+  hellpot:
+    restart: always
+    image: "dtagdevsec/hellpot:2204"
+    read_only: true
+    volumes:
+      - /data/hellpot/log:/var/log/hellpot
+
+  inetsim:
+    image: 0x4d4c/inetsim
+    restart: always
+    environment:
+      - INETSIM_HTTP_VERSION=nginx/1.4.6 (Ubuntu)
+      - INETSIM_SMTP_FQDN_HOSTNAME=${DOMAIN_NAME}
+      - INETSIM_SMTP_BANNER=ESMTP Postfix (Ubuntu)
+      - INETSIM_SMTPS_BANNER=ESMTP Postfix (Ubuntu)
+      - INETSIM_SMTPS_FQDN_HOSTNAME=${DOMAIN_NAME}
+      - INETSIM_POP3_BANNER=ESMTP Postfix (Ubuntu)
+      - INETSIM_POP3S_BANNER=ESMTP Postfix (Ubuntu)
+    volumes:
+      - ./inetsim/log:/opt/inetsim/log
+      - ./inetsim/data:/opt/inetsim/data
+      - ./inetsim/report/inetsim:/opt/inetsim/report
+
+  cowrie:
+    restart: always
+    tmpfs:
+     - /tmp/cowrie:uid=2000,gid=2000
+     - /tmp/cowrie/data:uid=2000,gid=2000
+    image: "dtagdevsec/cowrie:2204"
+    read_only: true
+    volumes:
+     - /data/cowrie/downloads:/home/cowrie/cowrie/dl
+     - /data/cowrie/keys:/home/cowrie/cowrie/etc
+     - /data/cowrie/log:/home/cowrie/cowrie/log
+     - /data/cowrie/log/tty:/home/cowrie/cowrie/log/ttyi
+
+  dicompot:
+    restart: always
+    image: "dtagdevsec/dicompot:2204"
+    read_only: true
+    volumes:
+     - /data/dicompot/log:/var/log/dicompot
+
+  dionaea:
+    stdin_open: true
+    tty: true
+    cpu_count: 1
+    cpus: 0.5
+    restart: always
+    image: "dtagdevsec/dionaea:2204"
+    read_only: true
+    volumes:
+     - /data/dionaea/roots/ftp:/opt/dionaea/var/dionaea/roots/ftp
+     - /data/dionaea/roots/tftp:/opt/dionaea/var/dionaea/roots/tftp
+     - /data/dionaea/roots/www:/opt/dionaea/var/dionaea/roots/www
+     - /data/dionaea/roots/upnp:/opt/dionaea/var/dionaea/roots/upnp
+     - /data/dionaea:/opt/dionaea/var/dionaea
+     - /data/dionaea/binaries:/opt/dionaea/var/dionaea/binaries
+     - /data/dionaea/log:/opt/dionaea/var/log
+     - /data/dionaea/rtp:/opt/dionaea/var/dionaea/rtp
+
+  ipphoney:
+    image: "dtagdevsec/ipphoney:2204"
+    restart: always
+    read_only: true
+    volumes:
+     - /data/ipphoney/log:/opt/ipphoney/log
+
+  medpot:
+    image: "dtagdevsec/medpot:2204"
+    restart: always
+    read_only: true
+    volumes:
+     - /data/medpot/log/:/var/log/medpot
+
+  certbot:
+    image: certbot/certbot:latest
+    volumes:
+      - /tmp/html:/var/www/html
+      - /etc/letsencrypt:/etc/letsencrypt
+      - /var/lib/letsencrypt:/var/lib/letsencrypt
+    depends_on:
+      - nginx
+    command: ["--version"]
+
+  nginx:
+    image: nginx:1.19.2-alpine
+    ports:
+      - 80:80
+    environment:
+      - DOMAIN_NAME=${DOMAIN_NAME}
+    volumes:
+      - ./config/nginx:/etc/nginx/conf.d
+      - /tmp/html:/var/www/html
+      - /etc/letsencrypt:/etc/letsencrypt
+      - /var/lib/letsencrypt:/var/lib/letsencrypt
+
+  fail2ban:
+    build: ./docker/fail2ban
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    network_mode: host
+    environment:
+      - MGMT_IP=${MGMT_IP}
+    volumes:
+      - /etc/timezone:/etc/timezone.host:ro
+      - /var/log:/var/log
+      - /data:/logs:ro
+
+volumes:
+  smtp4dev-data:
