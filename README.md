@@ -9,6 +9,11 @@ $ docker-compose up -d nginx
 $ docker-compose run --rm certbot certonly --webroot -w /var/www/html -d honeypot.local --agree-tos -m example@honeypot.local
 ```
 
+## 設定ファイルをコピー
+```bash
+cp honeypot.yaml.sample docker/httpd/honeypot.yaml
+```
+
 ## サーバの起動
 ```
 $ docker-compose up -d --build httpd socat
