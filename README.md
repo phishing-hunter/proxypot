@@ -3,6 +3,10 @@
 OpenProxyのように振る舞うハニーポット  
 ほとんどの通信がlocalhostへ転送されます  
 
+[説明スライド](https://www.slideshare.net/ssuser3daad4/openproxyproxypot-254936229)
+
+ログ解析ツールは[こちら](https://github.com/phishing-hunter/proxypot-analyzer)
+
 ## 証明書の取得
 ```
 $ docker-compose up -d nginx
