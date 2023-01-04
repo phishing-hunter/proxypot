@@ -15,12 +15,12 @@ $ docker-compose run --rm certbot certonly --webroot -w /var/www/html -d honeypo
 
 ## 設定ファイルをコピー
 ```bash
-cp honeypot.yaml.sample docker/httpd/honeypot.yaml
+cp honeypot.yaml.sample docker/common/honeypot.yaml
 ```
 
 ## サーバの起動
 ```
-$ docker-compose up -d --build httpd socat
+$ docker-compose up -d --build httpd sshd socat
 ```
 
 ## Proxy Checker

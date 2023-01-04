@@ -1,5 +1,6 @@
 requests
+click
 pyyaml
 python-json-logger
-click
+paramiko
 fakeshell

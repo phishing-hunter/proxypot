@@ -2,7 +2,9 @@ version: "3.4"
 
 services:
   httpd:
-    build: ./docker/httpd
+    build: 
+      context: docker
+      dockerfile: httpd/Dockerfile
     ports:
       - "80:80"
       - "8080:80"
@@ -15,8 +17,10 @@ services:
       - HONEYPOT_IP=${HONEYPOT_IP}
     volumes:
       - /data:/logs
+      - ./config:/config
     depends_on:
       - socat
+      - sshd
       - hellpot
       - inetsim
       - dionaea
@@ -31,8 +35,26 @@ services:
     read_only: true
     restart: always
 
+  sshd:
+    build: 
+      context: docker
+      dockerfile: sshd/Dockerfile
+    ports:
+      - "2222:22"
+    environment:
+      - DOMAIN_NAME=${DOMAIN_NAME}
+      - HONEYPOT_IP=${HONEYPOT_IP}
+    volumes:
+      - /data:/logs
+    #tmpfs:
+    # - /tmp
+    #read_only: true
+    restart: always
+
   socat:
-    build: ./docker/socat
+    build: 
+      context: docker
+      dockerfile: socat/Dockerfile
     ports:
       - "443:443"
       - '465:465'
