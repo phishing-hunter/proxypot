@@ -14,6 +14,8 @@ from http.server import HTTPServer
 from http.server import BaseHTTPRequestHandler
 from socketserver import ThreadingMixIn
 from urllib.parse import urlparse, urlunparse, unquote
+from lib.honeypot import resolve_host_port, config
+from fakeshell.shell import FakeShell
 
 DOMAIN_NAME = os.environ.get("DOMAIN_NAME")
 HONEYPOT_IP = os.environ.get("HONEYPOT_IP")
@@ -31,11 +33,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 logger.addHandler(handler)
 
-config = {}
-with open("/honeypot.yaml", "r") as f:
-    config = yaml.safe_load(f)
-
-MAX_RECV_SIZE = config["httpd"]["proxy"].get("max_recv_size", -1)
+MAX_RECV_SIZE = config["proxy"].get("max_recv_size", -1)
 SOCKET_TIMEOUT = config["httpd"].get("socket_timeout", 20)
 
 SERVER_VERSION = config["httpd"].get("server_version", "nginx/1.4.6")
@@ -58,7 +56,7 @@ def fake_proxy_checker(path, ip, port):
     content, content_type = "", ""
     result = False
     if path != "/" and len(path) < 10:
-        content = content_read("/content/azenv.html")
+        content = content_read("/app/content/azenv.html")
         content = content.replace("__REMOTE_ADDR__", HONEYPOT_IP).replace(
             "__REMOTE_PORT__", str(port)
         )
@@ -84,10 +82,15 @@ def keyword_matcher(path, keywords):
     return False
 
 
-def simple_echo_vuln_checker(body):
+def run_fake_shell(body):
+    results = []
     if body.find("echo") != -1:
-        return True
-    return False
+        with FakeShell("/", exclude_dir=["/scripts", "/dev"]) as sh:
+            for cmd_out in sh.run_command(body):
+                results.append(cmd_out)
+    else:
+        return "", False
+    return "\n".join(results), True
 
 
 def fake_content(self):
@@ -102,10 +105,12 @@ def fake_content(self):
     content_type = default["type"]
 
     for func in functions:
-        if func["function"] == "simple_echo_vuln_checker":
-            if simple_echo_vuln_checker(self.post_body):
-                content_type = func.get("type", default["type"])
-                return self.post_body, content_type
+        if func["function"] == "fake_shell":
+            res_content, ret = run_fake_shell(self.post_body)
+            if ret:
+                content = res_content
+                content_type = "text/plain"
+                return content, content_type
         if func["function"] == "keyword_matcher":
             keywords = func["keywords"]
             if keyword_matcher(path, keywords):
@@ -124,24 +129,6 @@ def fake_content(self):
                 return con, typ
 
     return content, content_type
-
-
-def check_path(path):
-    whitelist_path_keyword = config["httpd"]["proxy"]["whitelist_path_keywords"]
-    for keyword in whitelist_path_keyword:
-        if path.find(keyword) != -1:
-            return True
-    return False
-
-
-def check_domain(domain):
-    whitelist_domain_keyword = config["httpd"]["proxy"]["whitelist_domain_keywords"]
-    if domain is None:
-        return False
-    for keyword in whitelist_domain_keyword:
-        if domain.find(keyword) != -1:
-            return True
-    return False
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -202,13 +189,6 @@ class Handler(BaseHTTPRequestHandler):
             },
         )
 
-    def _port_range(self, port_range_list):
-        ports = []
-        for port_range in port_range_list:
-            pr = list(map(int, port_range.split("-")))
-            ports += list(range(pr[0], pr[1]))
-        return ports
-
     def _connect_to(self, netloc, sock):
         result = 0
         try:
@@ -218,47 +198,9 @@ class Handler(BaseHTTPRequestHandler):
         except Exception as e:
             return 0
 
-        proxy = False
-        # 接続先のポート番号によってはブロックする
-        src_port = host_port[1]
-        port_range = config["httpd"]["proxy"]["drop"].get("port_range", [])
-        if src_port in self._port_range(port_range):
-            return 0
-
-        # 転送ルールを使って宛先を書き換える
-        for name in config["httpd"]["proxy"]["port_forward"].keys():
-            pot = config["httpd"]["proxy"]["port_forward"][name]
-            target = pot["target"]
-            if src_port in self._port_range(pot.get("src_port_range", [])):
-                dst_port = pot.get("dst_port")
-                if dst_port:
-                    host_port = name, dst_port
-                else:
-                    host_port = name, src_port
-                proxy = True
-                break
-
-            if src_port in pot.get("src_ports", []):
-                dst_port = pot.get("dst_port")
-                if dst_port:
-                    host_port = target, dst_port
-                else:
-                    host_port = target, src_port
-                proxy = True
-                break
-
-        # ホワイトリスト以外はローカルに転送する
-        if (
-            not proxy
-            and not check_domain(host_port[0])
-            and not check_domain(self.headers.get("Host"))
-            and not check_path(self.path)
-        ):
-            ssl_port_forward = config["httpd"]["proxy"]["ssl_port_forward"].get("port_range", [443])
-            if host_port[1] in ssl_port_forward:
-                host_port = "socat", 443
-            else:
-                host_port = "httpd", 80
+        # 転送先を動的に変更する
+        src_host, src_port = host_port
+        host_port = resolve_host_port(src_host, src_port, path=self.path, header_host=self.headers.get("Host"))
 
         # 宛先に接続する
         try:
@@ -345,7 +287,7 @@ class Handler(BaseHTTPRequestHandler):
                         f"{self.protocol_version} 200 Connection Established\r\n".encode()
                     )
                     self.wfile.write(f"Proxy-agent: {self.version_string()}\r\n\r\n".encode())
-                size = self._read_write(sock, config["httpd"]["proxy"]["max_connections"])
+                size = self._read_write(sock, config["proxy"]["max_connections"])
         finally:
             sock.close()
             self.connection.close()

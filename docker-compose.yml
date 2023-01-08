@@ -2,7 +2,9 @@ version: "3.4"
 
 services:
   httpd:
-    build: ./docker/httpd
+    build: 
+      context: docker
+      dockerfile: httpd/Dockerfile
     ports:
       - "80:80"
       - "8080:80"
@@ -17,11 +19,11 @@ services:
       - /data:/logs
     depends_on:
       - socat
+      - sshd
       - hellpot
       - inetsim
       - dionaea
       - smtpd
-      - cowrie
       - dicompot
       - ipphoney
       - medpot
@@ -31,8 +33,44 @@ services:
     read_only: true
     restart: always
 
+  sshd:
+    build: 
+      context: docker
+      dockerfile: sshd/Dockerfile
+    ports:
+      - "2222:22"
+    depends_on:
+      - telnetd
+    environment:
+      - DOMAIN_NAME=${DOMAIN_NAME}
+      - HONEYPOT_IP=${HONEYPOT_IP}
+    volumes:
+      - /data:/logs
+    tmpfs:
+     - /tmp
+    read_only: true
+    restart: always
+
+  telnetd:
+    build:
+      context: docker
+      dockerfile: telnetd/Dockerfile
+    ports:
+      - "127.0.0.1:23:23"
+    environment:
+      - DOMAIN_NAME=${DOMAIN_NAME}
+      - HONEYPOT_IP=${HONEYPOT_IP}
+    volumes:
+      - /data:/logs
+    tmpfs:
+     - /tmp
+    read_only: true
+    restart: always
+
   socat:
-    build: ./docker/socat
+    build: 
+      context: docker
+      dockerfile: socat/Dockerfile
     ports:
       - "443:443"
       - '465:465'
@@ -88,19 +126,6 @@ services:
       - ./inetsim/log:/opt/inetsim/log
       - ./inetsim/data:/opt/inetsim/data
       - ./inetsim/report/inetsim:/opt/inetsim/report
-
-  cowrie:
-    restart: always
-    tmpfs:
-     - /tmp/cowrie:uid=2000,gid=2000
-     - /tmp/cowrie/data:uid=2000,gid=2000
-    image: "dtagdevsec/cowrie:2204"
-    read_only: true
-    volumes:
-     - /data/cowrie/downloads:/home/cowrie/cowrie/dl
-     - /data/cowrie/keys:/home/cowrie/cowrie/etc
-     - /data/cowrie/log:/home/cowrie/cowrie/log
-     - /data/cowrie/log/tty:/home/cowrie/cowrie/log/ttyi
 
   dicompot:
     restart: always

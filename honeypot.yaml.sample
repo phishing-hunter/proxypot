@@ -5,83 +5,6 @@ httpd:
   post:
     max_payload_size: 10000
 
-  proxy:
-    max_connections: 1024
-    max_recv_size: -1
-
-    whitelist_domain_keywords:
-      # crawler domains
-      # - "www.google.com"
-      # checker domains
-      - "zennolab.com"
-      - "checkip"
-      - "proxyjudge"
-      - "proxyswitcher"
-      - "azenv.net"
-      - "cybersyndrome.net"
-      - "checkerproxy"
-      - "justchecker.info"
-      - "ip-api.com"
-      - "ipinfo.io"
-      - "api.myip.com"
-      - "www.vpngate.net"
-      - "www.freeproxy.world"
-
-    whitelist_path_keywords:
-      - "proxy-checker"
-      - "azenv.php"
-      - "check.php"
-      - "proxy.php"
-      - "ip.php"
-      - "info.php"
-      - "/judge"
-      - "antibot.php"
-
-    drop:
-      port_range: ["1-10"]
-
-    ssl_port_forward:
-      port_range: [443, 8443, 9443]
-
-    port_forward:
-      socat:
-        target: "socat"
-        src_ports: [25, 465]
-      smtpd:
-        target: "smtpd"
-        src_ports: [587, 2525]
-        dst_port: 25
-      telnet:
-        target: "cowrie"
-        src_ports: [23]
-        dst_port: 23
-      ssh:
-        target: "cowrie"
-        src_ports: [22, 2222, 22222]
-        dst_port: 22
-      ipp:
-        target: "ipphoney"
-        src_ports: [631]
-      medical:
-        target: "medpot"
-        src_ports: [2575]
-      dicom:
-        target: "dicompot"
-        src_ports: [11112]
-      inetsim:
-        # https://github.com/rainforest-tokyo/inetsim-docker
-        target: "inetsim"
-        src_ports: [465, 110, 995, 21, 990, 6667, 113, 79]
-      dionaea:
-        target: "dionaea"
-        # https://github.com/DinoTools/dionaea
-        src_ports: [20, 21, 42, 69, 81, 135, 445, 1433, 1723, 1883, 3306, 27017]
-      hellpot:
-        # 無限にコンテンツを返す
-        target: "hellpot"
-        src_port_range: ["20000-65535"]
-        dst_port: 8080
-
   response:
     get:
       default:
@@ -95,7 +18,7 @@ httpd:
         - name: "javascript"
           function: "keyword_matcher"
           keywords: ["/js/", ".js"]
-          file: "/content/empty.js"
+          file: "/app/content/empty.js"
           type: "application/javascript; charset=utf-8"
 
         - name: "api"
@@ -107,13 +30,13 @@ httpd:
         - name: "login page"
           function: "keyword_matcher"
           keywords: ["/login", "/signin", "/signup", "/register"]
-          file: "/content/login.html"
+          file: "/app/content/login.html"
           type: "text/html; charset=ISO-8859-1"
 
         - name: "search form"
           function: "keyword_matcher"
           keywords: ["/search", "/query"]
-          file: "/content/search.html"
+          file: "/app/content/search.html"
           type: "text/html; charset=ISO-8859-1"
 
         - name: "fake check proxy"
@@ -124,6 +47,90 @@ httpd:
         content: '{"message": "ok"}'
         type: "application/json"
       functions:
-        - name: "simple echo vuln checker"
-          function: "simple_echo_vuln_checker"
+        - name: "fake shell"
+          function: "fake_shell"
           type: "text/plain"
+
+ssh:
+  password_auth:
+    - root:password
+    - admin:password
+
+proxy:
+  max_connections: 1024
+  max_recv_size: -1
+
+  whitelist_domain_keywords:
+    # crawler domains
+    # - "www.google.com"
+    # checker domains
+    - "zennolab.com"
+    - "checkip"
+    - "proxyjudge"
+    - "proxyswitcher"
+    - "azenv.net"
+    - "cybersyndrome.net"
+    - "checkerproxy"
+    - "justchecker.info"
+    - "ip-api.com"
+    - "ipinfo.io"
+    - "ifconfig.io"
+    - "api.myip.com"
+    - "www.vpngate.net"
+    - "www.freeproxy.world"
+
+  whitelist_path_keywords:
+    - "proxy-checker"
+    - "azenv.php"
+    - "check.php"
+    - "proxy.php"
+    - "ip.php"
+    - "info.php"
+    - "/judge"
+    - "antibot.php"
+
+  drop:
+    port_range: ["1-10"]
+
+  ssl_port_forward:
+    port_range: [443, 8443, 9443]
+
+  port_forward:
+    socat:
+      target: "socat"
+      src_ports: [25, 465]
+    smtpd:
+      target: "smtpd"
+      src_ports: [587, 2525]
+      dst_port: 25
+    telnet:
+      target: "telnetd"
+      src_ports: [23]
+      dst_port: 23
+    ssh:
+      target: "sshd"
+      src_ports: [22, 2222, 22222]
+      dst_port: 22
+    ipp:
+      target: "ipphoney"
+      src_ports: [631]
+    medical:
+      target: "medpot"
+      src_ports: [2575]
+    dicom:
+      target: "dicompot"
+      src_ports: [11112]
+    inetsim:
+      # https://github.com/rainforest-tokyo/inetsim-docker
+      target: "inetsim"
+      src_ports: [465, 110, 995, 21, 990, 6667, 113, 79]
+    dionaea:
+      target: "dionaea"
+      # https://github.com/DinoTools/dionaea
+      src_ports: [20, 21, 42, 69, 81, 135, 445, 1433, 1723, 1883, 3306, 27017]
+    hellpot:
+      # 無限にコンテンツを返す
+      target: "hellpot"
+      src_port_range: ["20000-65535"]
+      dst_port: 8080
+

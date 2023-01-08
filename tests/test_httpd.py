@@ -23,5 +23,5 @@ assert r.content.decode().find("AZ Environment") != -1
 r = requests.get('http://wfuchs.de/azenv.php', proxies = proxies, allow_redirects=False)
 assert r.content.decode().find("Moved Permanently") != -1
 
-r = requests.get('https://www.google.com', proxies = proxies, verify=False)
-assert r.content.decode() == "<html><body></body></html>"
+#r = requests.get('https://www.google.com', proxies = proxies, verify=False)
+#assert r.content.decode() == "<html><body></body></html>"

@@ -7,24 +7,32 @@ OpenProxyのように振る舞うハニーポット
 
 ログ解析ツールは[こちら](https://github.com/phishing-hunter/proxypot-analyzer)
 
-## 証明書の取得
+## HTTPプロキシサーバ
+[![asciicast](https://asciinema.org/a/550329.svg)](https://asciinema.org/a/550329)
+
+## SSHプロキシサーバ
+[![asciicast](https://asciinema.org/a/550328.svg)](https://asciinema.org/a/550328)
+
+## セットアップ方法
+### 証明書の取得
+はじめに証明書の取得を行います。  
+ハニーポットがグローバルIPアドレスを持っていない場合は手順をスキップしてください。  
 ```
 $ docker-compose up -d nginx
 $ docker-compose run --rm certbot certonly --webroot -w /var/www/html -d honeypot.local --agree-tos -m example@honeypot.local
 ```
 
-## 設定ファイルをコピー
+### 設定ファイルをコピー
 ```bash
-cp honeypot.yaml.sample docker/httpd/honeypot.yaml
+cp honeypot.yaml.sample docker/common/honeypot.yaml
 ```
 
-## サーバの起動
+### サーバの起動
 ```
-$ docker-compose up -d --build httpd socat
+$ docker-compose up -d --build httpd sshd telnetd socat
 ```
 
-## Proxy Checker
-
+### Proxy Checker
 ハニーポットを起動したら以下のサイトでチェックします。  
 
 ### http

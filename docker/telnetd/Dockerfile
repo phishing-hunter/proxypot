@@ -1,7 +1,7 @@
 FROM python:3.9
 
 RUN mkdir /logs
-COPY ./httpd /app
+COPY ./telnetd /app
 WORKDIR /app
 
 RUN pip3 install -r requirements.txt
