@@ -17,7 +17,6 @@ services:
       - HONEYPOT_IP=${HONEYPOT_IP}
     volumes:
       - /data:/logs
-      - ./config:/config
     depends_on:
       - socat
       - sshd
@@ -41,6 +40,8 @@ services:
       dockerfile: sshd/Dockerfile
     ports:
       - "2222:22"
+    depends_on:
+      - telnetd
     environment:
       - DOMAIN_NAME=${DOMAIN_NAME}
       - HONEYPOT_IP=${HONEYPOT_IP}

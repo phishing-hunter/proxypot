@@ -26,7 +26,7 @@ cp honeypot.yaml.sample docker/common/honeypot.yaml
 
 ## サーバの起動
 ```
-$ docker-compose up -d --build httpd sshd socat
+$ docker-compose up -d --build httpd sshd telnetd socat
 ```
 
 ## Proxy Checker
