@@ -57,7 +57,7 @@ services:
       context: docker
       dockerfile: telnetd/Dockerfile
     ports:
-      - "2323:23"
+      - "127.0.0.1:23:23"
     environment:
       - DOMAIN_NAME=${DOMAIN_NAME}
       - HONEYPOT_IP=${HONEYPOT_IP}
