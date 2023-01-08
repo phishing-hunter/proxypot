@@ -74,6 +74,7 @@ proxy:
     - "justchecker.info"
     - "ip-api.com"
     - "ipinfo.io"
+    - "ifconfig.io"
     - "api.myip.com"
     - "www.vpngate.net"
     - "www.freeproxy.world"

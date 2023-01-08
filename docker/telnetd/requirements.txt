@@ -1,0 +1,5 @@
+requests
+click
+pyyaml
+python-json-logger
+fakeshell

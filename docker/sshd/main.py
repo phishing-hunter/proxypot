@@ -35,7 +35,6 @@ LOGFILE_LOCK = threading.Lock()
 HOST_KEY = paramiko.RSAKey.generate(2048)
 HOST_KEY = paramiko.RSAKey(filename='/etc/server.key')
 
-
 class ForwardClient(threading.Thread):
     daemon = True
 
@@ -64,9 +63,9 @@ class ForwardClient(threading.Thread):
             try:
                 self.tunnel(self.socket, chan)
             except Exception as e:
-                print(e)
+                logging.error(e)
         except Exception as e:
-            print(e)
+            logging.error(e)
 
     def tunnel(self, sock, chan, chunk_size=1024):
         while True:
@@ -97,7 +96,6 @@ class Server(paramiko.ServerInterface):
         self.password = ""
         self.command = ""
         self.chanid = -1
-        self.shell = True
 
     def log_message(self, message):
         LOGFILE_LOCK.acquire()
@@ -146,18 +144,6 @@ class Server(paramiko.ServerInterface):
         self.log_message(f"check_channel_pty_request {term, width, height, pixelwidth, pixelheight}")
         return False
 
-    def check_channel_direct_tcpip_request(self, chanid, origin, destination):
-        self.dst_ip, self.dst_port = destination
-        self.chanid = chanid
-        self.log_message("check_channel_direct_tcpip_request")
-        try:
-            self.shell = False
-            f = ForwardClient(destination, self.transport, chanid)
-            f.start()
-        except Exception as e:
-            print(e)
-        return paramiko.OPEN_SUCCEEDED
-
     def check_channel_forward_agent_request(self, channel):
         self.log_message("check_channel_forward_agent_request")
         return False
@@ -165,6 +151,17 @@ class Server(paramiko.ServerInterface):
     def check_channel_x11_request(self, channel, single_connection, auth_protocol, auth_cookie, screen_number):
         self.log_message("check_channel_x11_request")
         return False
+
+    def check_channel_direct_tcpip_request(self, chanid, origin, destination):
+        self.dst_ip, self.dst_port = destination
+        self.chanid = chanid
+        self.log_message("check_channel_direct_tcpip_request")
+        try:
+            f = ForwardClient(destination, self.transport, chanid)
+            f.start()
+        except Exception as e:
+            print(e)
+        return paramiko.OPEN_SUCCEEDED
 
     def check_channel_exec_request(self, channel, command):
         command = command.decode()  # convert to string from bytes:
@@ -179,40 +176,33 @@ class Server(paramiko.ServerInterface):
 
     def check_channel_shell_request(self, channel):
         self.log_message("check_channel_shell_request")
-        stdout = channel.makefile("w")
-        stdin = channel.makefile("r")
-        t = threading.Thread(target=self._execute_command, args=(stdin, stdout), daemon=True)
+        t = threading.Thread(target=self._execute_command, args=(channel,), daemon=True)
         t.start()
         return True
 
-    def _get_ps1(self):
-        cwd = os.getcwd()
-        cwd = "~" if cwd == os.environ["HOME"] else cwd
-        ps1 = f"[{self.username}@localhost {cwd}]# "
-        return ps1
+    def _execute_command(self, channel):
+        banner = f'Last login: {time.strftime("%a %b %d %H:%M:%S %Y", time.localtime())} from {self.src_ip}\n\n'
+        channel.send(banner)
+        conn = socket.create_connection(("telnetd", 23))
+        # telnetへ通信を転送する
+        while True:
+            r, w, x = select.select([channel, conn], [], [])
 
-    def _execute_command(self, stdin, stdout):
-        ps1 = self._get_ps1()
-        banner = f'Last login: {time.strftime("%a %b %d %H:%M:%S %Y", time.localtime())} from {self.src_ip}\n\n{ps1}'
-        stdout.write(banner)
-        with FakeShell("/", exclude_dir=["/app", "/dev", "/logs"], fakefs=self.shell) as sh:
-            for command in stdin:
-                try:
-                    self.command = command
-                    self.log_message("execution")
-                    if command == "\n":
-                        stdout.write(self._get_ps1())
-                        continue
-                    if command in ["quit\n", "exit\n"]:
-                        stdout.write("")
-                        break
-                    if self.shell:
-                        for cmd_out in sh.run_command(command):
-                            stdout.write(cmd_out)
-                    stdout.write(self._get_ps1())
-                except Exception as e:
-                    print(e)
+            if channel in r:
+                data = channel.recv(1024)
+                if len(data) == 0:
+                    break
+                self.command = data.decode()
+                self.log_message("execution")
+                if self.command in ["quit\n", "exit\n"]:
+                    break
+                conn.send(data)
 
+            if conn in r:
+                data = conn.recv(1024)
+                if len(data) == 0:
+                    break
+                channel.send(data)
 
 class SshHandler(BaseRequestHandler):
     def handle(self):
