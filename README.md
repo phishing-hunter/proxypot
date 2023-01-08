@@ -7,6 +7,12 @@ OpenProxyのように振る舞うハニーポット
 
 ログ解析ツールは[こちら](https://github.com/phishing-hunter/proxypot-analyzer)
 
+## HTTPプロキシサーバ
+[![asciicast](https://asciinema.org/a/550329.svg)](https://asciinema.org/a/550329)
+
+## SSHプロキシサーバ
+[![asciicast](https://asciinema.org/a/550328.svg)](https://asciinema.org/a/550328)
+
 ## 証明書の取得
 ```
 $ docker-compose up -d nginx
