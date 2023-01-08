@@ -104,7 +104,7 @@ proxy:
       src_ports: [587, 2525]
       dst_port: 25
     telnet:
-      target: "cowrie"
+      target: "telnetd"
       src_ports: [23]
       dst_port: 23
     ssh:

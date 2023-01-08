@@ -24,7 +24,6 @@ services:
       - inetsim
       - dionaea
       - smtpd
-      - cowrie
       - dicompot
       - ipphoney
       - medpot
@@ -127,19 +126,6 @@ services:
       - ./inetsim/log:/opt/inetsim/log
       - ./inetsim/data:/opt/inetsim/data
       - ./inetsim/report/inetsim:/opt/inetsim/report
-
-  cowrie:
-    restart: always
-    tmpfs:
-     - /tmp/cowrie:uid=2000,gid=2000
-     - /tmp/cowrie/data:uid=2000,gid=2000
-    image: "dtagdevsec/cowrie:2204"
-    read_only: true
-    volumes:
-     - /data/cowrie/downloads:/home/cowrie/cowrie/dl
-     - /data/cowrie/keys:/home/cowrie/cowrie/etc
-     - /data/cowrie/log:/home/cowrie/cowrie/log
-     - /data/cowrie/log/tty:/home/cowrie/cowrie/log/ttyi
 
   dicompot:
     restart: always
