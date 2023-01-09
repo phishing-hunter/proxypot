@@ -38,7 +38,7 @@ services:
       context: docker
       dockerfile: sshd/Dockerfile
     ports:
-      - "2222:22"
+      - "22:22"
     depends_on:
       - telnetd
     environment:
