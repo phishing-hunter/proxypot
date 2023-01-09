@@ -52,9 +52,14 @@ httpd:
           type: "text/plain"
 
 ssh:
+  local_version: "SSH-2.0-OpenSSH_8.9p1 Ubuntu-3"
   password_auth:
+    - root:password123
+    - root:1234qwer
+    - root:wsxzaq
+    - root:qwerty
+    - root:qazxsw
     - root:password
-    - admin:password
 
 proxy:
   max_connections: 1024

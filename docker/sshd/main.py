@@ -209,7 +209,7 @@ class SshHandler(BaseRequestHandler):
         connection = self.request
         try:
             t = paramiko.Transport(connection)
-            t.local_version = "SSH-2.0-OpenSSH_6.6.1p1 Ubuntu-2ubuntu2"
+            t.local_version = config["ssh"].get("local_version", "SSH-2.0-OpenSSH_8.9p1 Ubuntu-3")
             t.set_gss_host(socket.getfqdn(""))
             t.load_server_moduli()
             t.add_server_key(HOST_KEY)
