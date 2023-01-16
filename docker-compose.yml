@@ -12,6 +12,10 @@ services:
       - "8000:80"
       - "8001:80"
       - "1080:80"
+    logging:
+      options:
+        max-file: '1'
+        max-size: 3m
     environment:
       - DOMAIN_NAME=${DOMAIN_NAME}
       - HONEYPOT_IP=${HONEYPOT_IP}
@@ -39,6 +43,10 @@ services:
       dockerfile: sshd/Dockerfile
     ports:
       - "22:22"
+    logging:
+      options:
+        max-file: '1'
+        max-size: 3m
     depends_on:
       - telnetd
     environment:
@@ -57,6 +65,10 @@ services:
       dockerfile: telnetd/Dockerfile
     ports:
       - "127.0.0.1:23:23"
+    logging:
+      options:
+        max-file: '1'
+        max-size: 3m
     environment:
       - DOMAIN_NAME=${DOMAIN_NAME}
       - HONEYPOT_IP=${HONEYPOT_IP}
@@ -74,6 +86,10 @@ services:
     ports:
       - "443:443"
       - '465:465'
+    logging:
+      options:
+        max-file: '1'
+        max-size: 3m
     environment:
       - DOMAIN_NAME=${DOMAIN_NAME}
     volumes:
